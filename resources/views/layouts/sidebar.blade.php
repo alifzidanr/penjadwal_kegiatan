@@ -10,12 +10,12 @@
         <nav class="flex-1 px-4 py-6 space-y-2">
             <!-- Dashboard -->
             <a href="{{ route('dashboard.index') }}" 
-               class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors group {{ request()->routeIs('dashboard.*') ? 'sidebar-active text-white' : '' }}">
+               class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors group {{ request()->routeIs('dashboard.index') || request()->routeIs('dashboard.fullscreen') ? 'sidebar-active text-white' : '' }}">
                 <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>
                 <span class="font-medium">Dashboard</span>
             </a>
             
-            <!-- Dashboard/Jadwal -->
+            <!-- Jadwal Kegiatan -->
             <a href="{{ route('jadwal.index') }}" 
                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors group {{ request()->routeIs('jadwal.*') ? 'sidebar-active text-white' : '' }}">
                 <i data-lucide="calendar" class="w-5 h-5 mr-3"></i>
@@ -34,6 +34,19 @@
                class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors group {{ request()->routeIs('anggota.*') ? 'sidebar-active text-white' : '' }}">
                 <i data-lucide="users" class="w-5 h-5 mr-3"></i>
                 <span class="font-medium">Anggota</span>
+            </a>
+            
+            <!-- Archive -->
+            <a href="{{ route('archive.index') }}" 
+               class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors group {{ request()->routeIs('archive.*') ? 'sidebar-active text-white' : '' }}">
+                <i data-lucide="archive" class="w-5 h-5 mr-3"></i>
+                <span class="font-medium">Arsip Jadwal</span>
+                @php
+                    $archivedCount = \App\Models\Kegiatan::where('is_archived', true)->count();
+                @endphp
+                @if($archivedCount > 0)
+                    <span class="ml-auto bg-gray-500 text-white text-xs px-2 py-1 rounded-full">{{ $archivedCount }}</span>
+                @endif
             </a>
             
             <!-- <a href="#" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors group">

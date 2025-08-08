@@ -55,11 +55,26 @@
                         Anggota
                     </label>
                     
-                    <!-- Search Input -->
-                    <div class="relative mb-2">
-                        <input type="text" id="anggotaSearch" placeholder="Cari anggota..." 
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                        <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+                    <!-- Search Input and Select All Controls -->
+                    <div class="flex space-x-2 mb-2">
+                        <!-- Search Input -->
+                        <div class="relative flex-1">
+                            <input type="text" id="anggotaSearch" placeholder="Cari anggota..." 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                            <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+                        </div>
+                        
+                        <!-- Select All Controls -->
+                        <div class="flex space-x-1">
+                            <button type="button" id="btnSelectAll" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-1" title="Pilih Semua">
+                                <i data-lucide="check-square" class="w-4 h-4"></i>
+                                <span>All</span>
+                            </button>
+                            <button type="button" id="btnDeselectAll" class="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-1" title="Hapus Semua Pilihan">
+                                <i data-lucide="square" class="w-4 h-4"></i>
+                                <span>None</span>
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Anggota List Container -->
@@ -74,8 +89,13 @@
                     </div>
                     
                     <!-- Selected Count -->
-                    <div class="mt-2 text-sm text-gray-600">
-                        <span id="selectedCount">0</span> anggota dipilih
+                    <div class="mt-2 flex justify-between items-center text-sm">
+                        <span class="text-gray-600">
+                            <span id="selectedCount">0</span> dari <span id="totalCount">0</span> anggota dipilih
+                        </span>
+                        <span id="selectionStatus" class="text-blue-600 font-medium hidden">
+                            <!-- Status akan ditampilkan di sini -->
+                        </span>
                     </div>
                     
                     <!-- Hidden input to store selected anggota -->
@@ -83,27 +103,55 @@
                 </div>
                 
                 <!-- Tanggal dan Waktu -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label for="tanggal" class="block text-sm font-medium text-gray-700 mb-2">
-                            Tanggal
-                        </label>
-                        <input type="date" id="tanggal" name="tanggal"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                <div class="space-y-4">
+                    <!-- Date Range Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="tanggal_mulai" class="block text-sm font-medium text-gray-700 mb-2">
+                                Tanggal Mulai
+                            </label>
+                            <input type="date" id="tanggal_mulai" name="tanggal_mulai"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
+                        <div>
+                            <label for="tanggal_selesai" class="block text-sm font-medium text-gray-700 mb-2">
+                                Tanggal Selesai
+                            </label>
+                            <input type="date" id="tanggal_selesai" name="tanggal_selesai"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                            <p class="text-xs text-gray-500 mt-1">Kosongkan jika kegiatan hanya 1 hari</p>
+                        </div>
                     </div>
-                    <div>
-                        <label for="jam_mulai" class="block text-sm font-medium text-gray-700 mb-2">
-                            Jam Mulai
-                        </label>
-                        <input type="time" id="jam_mulai" name="jam_mulai"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    
+                    <!-- Duration Preview -->
+                    <div id="durationPreview" class="hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div class="flex items-center">
+                                <i data-lucide="calendar-days" class="w-4 h-4 text-blue-600 mr-2"></i>
+                                <span class="text-sm text-blue-800">
+                                    <span id="durationText">Durasi: 1 hari</span>
+                                    <span id="dateRangeText" class="ml-2 font-medium"></span>
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label for="jam_selesai" class="block text-sm font-medium text-gray-700 mb-2">
-                            Jam Selesai
-                        </label>
-                        <input type="time" id="jam_selesai" name="jam_selesai"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    
+                    <!-- Time Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="jam_mulai" class="block text-sm font-medium text-gray-700 mb-2">
+                                Jam Mulai
+                            </label>
+                            <input type="time" id="jam_mulai" name="jam_mulai"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
+                        <div>
+                            <label for="jam_selesai" class="block text-sm font-medium text-gray-700 mb-2">
+                                Jam Selesai
+                            </label>
+                            <input type="time" id="jam_selesai" name="jam_selesai"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
                     </div>
                 </div>
                 
@@ -170,7 +218,8 @@ $(document).ready(function() {
             person_in_charge: $('#person_in_charge').val(),
             id_unit_kerja: $('#id_unit_kerja').val(),
             anggota: selectedAnggotaNames.join(', '),
-            tanggal: $('#tanggal').val(),
+            tanggal_mulai: $('#tanggal_mulai').val(),
+            tanggal_selesai: $('#tanggal_selesai').val() || $('#tanggal_mulai').val(),
             jam_mulai: $('#jam_mulai').val(),
             jam_selesai: $('#jam_selesai').val(),
             nama_tempat: $('#nama_tempat').val()
@@ -237,10 +286,32 @@ $(document).ready(function() {
         return selected;
     }
     
-    // Function to update selected count
+    // Function to update selected count and status
     function updateSelectedCount() {
-        const count = $('#anggotaList input[type="checkbox"]:checked').length;
-        $('#selectedCount').text(count);
+        const totalVisible = $('#anggotaList input[type="checkbox"]:visible').length;
+        const selectedVisible = $('#anggotaList input[type="checkbox"]:visible:checked').length;
+        const totalAll = $('#anggotaList input[type="checkbox"]').length;
+        const selectedAll = $('#anggotaList input[type="checkbox"]:checked').length;
+        
+        $('#selectedCount').text(selectedAll);
+        $('#totalCount').text(totalAll);
+        
+        // Update selection status
+        const selectionStatus = $('#selectionStatus');
+        if (selectedAll === 0) {
+            selectionStatus.addClass('hidden');
+        } else if (selectedAll === totalAll) {
+            selectionStatus.removeClass('hidden').text('Semua dipilih').removeClass('text-blue-600').addClass('text-green-600');
+        } else {
+            selectionStatus.removeClass('hidden').text('Sebagian dipilih').removeClass('text-green-600').addClass('text-blue-600');
+        }
+        
+        // Update button states
+        const hasVisibleItems = totalVisible > 0;
+        const allVisibleSelected = selectedVisible === totalVisible && totalVisible > 0;
+        
+        $('#btnSelectAll').prop('disabled', !hasVisibleItems || allVisibleSelected);
+        $('#btnDeselectAll').prop('disabled', selectedAll === 0);
     }
     
     // Function to render anggota list
@@ -256,6 +327,7 @@ $(document).ready(function() {
                 </div>
             `);
             lucide.createIcons();
+            updateSelectedCount();
             return;
         }
         
@@ -290,6 +362,49 @@ $(document).ready(function() {
         });
     }
     
+    // Select All button functionality
+    $('#btnSelectAll').click(function() {
+        const visibleCheckboxes = $('#anggotaList input[type="checkbox"]:visible');
+        visibleCheckboxes.prop('checked', true);
+        updateSelectedCount();
+        
+        // Show toast notification
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 1500,
+            timerProgressBar: true,
+        });
+        
+        Toast.fire({
+            icon: 'success',
+            title: `${visibleCheckboxes.length} anggota dipilih`
+        });
+    });
+    
+    // Deselect All button functionality
+    $('#btnDeselectAll').click(function() {
+        const allCheckboxes = $('#anggotaList input[type="checkbox"]');
+        const selectedCount = allCheckboxes.filter(':checked').length;
+        allCheckboxes.prop('checked', false);
+        updateSelectedCount();
+        
+        // Show toast notification
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 1500,
+            timerProgressBar: true,
+        });
+        
+        Toast.fire({
+            icon: 'info',
+            title: `${selectedCount} pilihan dihapus`
+        });
+    });
+    
     // Search functionality
     $('#anggotaSearch').on('input', function() {
         const searchTerm = $(this).val().toLowerCase();
@@ -306,6 +421,9 @@ $(document).ready(function() {
                 }
             });
         }
+        
+        // Update button states after search
+        updateSelectedCount();
     });
     
     // Load anggota when modal opens or unit kerja changes
@@ -321,6 +439,7 @@ $(document).ready(function() {
                 </div>
             `);
             lucide.createIcons();
+            updateSelectedCount();
         });
     }
     
@@ -341,6 +460,7 @@ $(document).ready(function() {
                     </div>
                 `);
                 lucide.createIcons();
+                updateSelectedCount();
             });
         } else {
             loadAnggota();
@@ -351,6 +471,82 @@ $(document).ready(function() {
     $('#btnTambah').click(function() {
         $('#anggotaSearch').val(''); // Clear search
         loadAnggota();
+    });
+    
+    // Function to calculate and show duration
+    function updateDurationPreview() {
+        const tanggalMulai = $('#tanggal_mulai').val();
+        const tanggalSelesai = $('#tanggal_selesai').val();
+        const durationPreview = $('#durationPreview');
+        const durationText = $('#durationText');
+        const dateRangeText = $('#dateRangeText');
+        
+        if (!tanggalMulai) {
+            durationPreview.addClass('hidden');
+            return;
+        }
+        
+        const startDate = new Date(tanggalMulai);
+        const endDate = tanggalSelesai ? new Date(tanggalSelesai) : startDate;
+        
+        // Calculate duration
+        const diffTime = Math.abs(endDate - startDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Format dates for display
+        const formatDate = (date) => {
+            return date.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        };
+        
+        // Update text
+        if (diffDays === 1 || !tanggalSelesai || tanggalMulai === tanggalSelesai) {
+            durationText.text('Durasi: 1 hari');
+            dateRangeText.text(formatDate(startDate));
+        } else {
+            durationText.text(`Durasi: ${diffDays} hari`);
+            dateRangeText.text(`${formatDate(startDate)} s/d ${formatDate(endDate)}`);
+        }
+        
+        durationPreview.removeClass('hidden');
+        lucide.createIcons();
+    }
+    
+    // Auto-fill tanggal_selesai when tanggal_mulai changes
+    $('#tanggal_mulai').change(function() {
+        const tanggalMulai = $(this).val();
+        const tanggalSelesai = $('#tanggal_selesai').val();
+        
+        // If tanggal_selesai is empty, set it to same as tanggal_mulai
+        if (tanggalMulai && !tanggalSelesai) {
+            $('#tanggal_selesai').val(tanggalMulai);
+        }
+        
+        updateDurationPreview();
+    });
+    
+    // Update preview when tanggal_selesai changes
+    $('#tanggal_selesai').change(function() {
+        updateDurationPreview();
+    });
+    
+    // Validate date range
+    $('#tanggal_mulai, #tanggal_selesai').change(function() {
+        const tanggalMulai = $('#tanggal_mulai').val();
+        const tanggalSelesai = $('#tanggal_selesai').val();
+        
+        if (tanggalMulai && tanggalSelesai && tanggalSelesai < tanggalMulai) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan!',
+                text: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai'
+            });
+            $('#tanggal_selesai').val(tanggalMulai);
+            updateDurationPreview();
+        }
     });
     
     // Validation for jam_selesai should be after jam_mulai
@@ -365,6 +561,92 @@ $(document).ready(function() {
                 text: 'Jam selesai harus lebih besar dari jam mulai'
             });
             $('#jam_selesai').val('');
+        }
+    });
+    
+    // Global function for editing
+    window.loadEditData = function(id) {
+        $.get(`{{ url('jadwal') }}/${id}`, function(data) {
+            console.log('Edit data received:', data);
+            
+            $('#modalTambah').removeClass('hidden');
+            $('#modalTitle').text('Edit Jadwal Kegiatan');
+            $('#jadwalId').val(data.id_kegiatan);
+            $('#nama_kegiatan').val(data.nama_kegiatan || '');
+            $('#person_in_charge').val(data.person_in_charge || '');
+            
+            // Set date fields
+            if (data.tanggal_mulai) {
+                let formattedDate = data.tanggal_mulai;
+                if (formattedDate.includes('T')) {
+                    formattedDate = formattedDate.split('T')[0];
+                }
+                $('#tanggal_mulai').val(formattedDate);
+            }
+            
+            if (data.tanggal_selesai) {
+                let formattedDate = data.tanggal_selesai;
+                if (formattedDate.includes('T')) {
+                    formattedDate = formattedDate.split('T')[0];
+                }
+                $('#tanggal_selesai').val(formattedDate);
+            }
+            
+            // Set time fields
+            $('#jam_mulai').val(data.jam_mulai || '');
+            $('#jam_selesai').val(data.jam_selesai || '');
+            
+            $('#nama_tempat').val(data.nama_tempat || '');
+            $('#id_unit_kerja').val(data.id_unit_kerja || '');
+            
+            // Update duration preview
+            updateDurationPreview();
+            
+            // Handle anggota selection
+            const anggotaNames = data.anggota ? data.anggota.split(', ') : [];
+            $('#anggotaSearch').val('');
+            
+            if (data.id_unit_kerja) {
+                $.get(`{{ url('anggota/by-unit') }}/${data.id_unit_kerja}`, function(anggotaData) {
+                    allAnggotaData = anggotaData;
+                    renderAnggotaList(anggotaData, anggotaNames);
+                }).fail(function() {
+                    $.get(`{{ url('anggota/all') }}`, function(anggotaData) {
+                        allAnggotaData = anggotaData;
+                        renderAnggotaList(anggotaData, anggotaNames);
+                    });
+                });
+            } else {
+                $.get(`{{ url('anggota/all') }}`, function(anggotaData) {
+                    allAnggotaData = anggotaData;
+                    renderAnggotaList(anggotaData, anggotaNames);
+                });
+            }
+        }).fail(function(xhr) {
+            console.error('Failed to load edit data:', xhr);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'Gagal memuat data jadwal untuk edit'
+            });
+        });
+    };
+    
+    // Keyboard shortcuts for select all/none
+    $(document).keydown(function(e) {
+        // Only work when modal is visible
+        if ($('#modalTambah').hasClass('hidden')) return;
+        
+        // Ctrl+A for select all
+        if (e.ctrlKey && e.key === 'a' && $('#anggotaSearch').is(':focus')) {
+            e.preventDefault();
+            $('#btnSelectAll').click();
+        }
+        
+        // Ctrl+D for deselect all
+        if (e.ctrlKey && e.key === 'd' && $('#anggotaSearch').is(':focus')) {
+            e.preventDefault();
+            $('#btnDeselectAll').click();
         }
     });
 });

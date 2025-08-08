@@ -7,6 +7,7 @@ use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\UnitKerjaController;
 use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ArchiveController;
 
 // Auth routes
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
@@ -18,8 +19,19 @@ Route::middleware('auth')->group(function () {
     // Dashboard routes
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
     Route::get('/dashboard/data', [DashboardController::class, 'getData'])->name('dashboard.data');
-    Route::get('/dashboard/fullscreen', [DashboardController::class, 'fullscreen'])->name('dashboard.fullscreen'); // NEW ROUTE
+    Route::get('/dashboard/fullscreen', [DashboardController::class, 'fullscreen'])->name('dashboard.fullscreen');
     Route::get('/dashboard/{id}', [DashboardController::class, 'show'])->name('dashboard.show');
+    Route::post('/dashboard/manual-archive/{id}', [DashboardController::class, 'manualArchive'])->name('dashboard.manual.archive');
+    Route::post('/dashboard/auto-archive', [DashboardController::class, 'triggerAutoArchive'])->name('dashboard.auto-archive');
+    
+    // Archive routes (separate menu)
+    Route::get('/archive', [ArchiveController::class, 'index'])->name('archive.index');
+    Route::get('/archive/data', [ArchiveController::class, 'getData'])->name('archive.data');
+    Route::get('/archive/stats', [ArchiveController::class, 'getStats'])->name('archive.stats');
+    Route::get('/archive/{id}', [ArchiveController::class, 'show'])->name('archive.show');
+    Route::post('/archive/restore/{id}', [ArchiveController::class, 'restore'])->name('archive.restore');
+    Route::delete('/archive/destroy-permanent/{id}', [ArchiveController::class, 'destroyPermanent'])->name('archive.destroy.permanent');
+    Route::post('/archive/bulk-restore', [ArchiveController::class, 'bulkRestore'])->name('archive.bulk.restore');
     
     // Jadwal routes
     Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
@@ -46,41 +58,4 @@ Route::middleware('auth')->group(function () {
     Route::get('/anggota/{id}', [AnggotaController::class, 'show'])->name('anggota.show');
     Route::put('/anggota/{id}', [AnggotaController::class, 'update'])->name('anggota.update');
     Route::delete('/anggota/{id}', [AnggotaController::class, 'destroy'])->name('anggota.destroy');
-    
-    // Debug routes
-    Route::get('/debug-data', function() {
-        try {
-            // Test basic query
-            $kegiatan = \App\Models\Kegiatan::all();
-            return response()->json([
-                'success' => true,
-                'count' => $kegiatan->count(),
-                'data' => $kegiatan->take(2)
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-        }
-    });
-    
-    Route::get('/debug-anggota', function() {
-        try {
-            // Check if anggota table exists and has data
-            $anggota = \App\Models\Anggota::all();
-            return response()->json([
-                'success' => true,
-                'count' => $anggota->count(),
-                'data' => $anggota->take(3)
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-        }
-    });
 });

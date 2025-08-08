@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/JadwalController.php
+// app/Http/Controllers/ArchiveController.php
 
 namespace App\Http\Controllers;
 
@@ -8,25 +8,22 @@ use App\Models\Kegiatan;
 use App\Models\UnitKerja;
 use Carbon\Carbon;
 
-class JadwalController extends Controller
+class ArchiveController extends Controller
 {
     public function index()
     {
-        // Auto-archive outdated schedules before showing the page
+        // Auto-archive outdated schedules before showing archive
         $this->autoArchiveOutdatedSchedules();
         
         $unitKerja = UnitKerja::all();
-        return view('jadwal.index', compact('unitKerja'));
+        return view('archive.index', compact('unitKerja'));
     }
 
     public function getData()
     {
         try {
-            // Auto-archive outdated schedules first
-            $this->autoArchiveOutdatedSchedules();
-            
-            // Include unit kerja relationship, only show active (non-archived) schedules
-            $query = Kegiatan::with('unitKerja')->where('is_archived', false);
+            // Get archived jadwal with unit kerja relationship
+            $query = Kegiatan::with('unitKerja')->where('is_archived', true);
             
             // Apply filters if provided
             if (request('unit_kerja')) {
@@ -41,9 +38,9 @@ class JadwalController extends Controller
                 $query->where('tanggal_mulai', '<=', request('tanggal_selesai'));
             }
             
-            // Order by tanggal_mulai ASC (earliest dates first), then by jam_mulai
-            $kegiatan = $query->orderBy('tanggal_mulai', 'asc')
-                           ->orderBy('jam_mulai', 'asc')
+            // Order by tanggal_mulai DESC (latest dates first), then by jam_mulai
+            $kegiatan = $query->orderBy('tanggal_mulai', 'desc')
+                           ->orderBy('jam_mulai', 'desc')
                            ->get();
             
             return response()->json([
@@ -51,17 +48,8 @@ class JadwalController extends Controller
                 'recordsTotal' => $kegiatan->count(),
                 'recordsFiltered' => $kegiatan->count(),
                 'data' => $kegiatan->map(function($item, $index) {
-                    // Create status indicators
-                    $statusBadge = '';
-                    if ($item->isOngoing()) {
-                        $statusBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">Berlangsung</span>';
-                    } elseif ($item->isMultiDay()) {
-                        $statusBadge = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">' . $item->duration_days . ' Hari</span>';
-                    }
-                    
-                   return [
+                    return [
                         'DT_RowIndex' => $index + 1,
-                        // Separate formatted dates for each column
                         'tanggal_mulai_formatted' => $item->tanggal_mulai ? $item->tanggal_mulai->format('d/m/Y') : '-',
                         'tanggal_selesai_formatted' => $item->tanggal_selesai ? $item->tanggal_selesai->format('d/m/Y') : '-',
                         'nama_kegiatan' => $item->nama_kegiatan,
@@ -70,18 +58,16 @@ class JadwalController extends Controller
                             $item->jam_mulai . ' - ' . $item->jam_selesai : '-',
                         'person_in_charge' => $item->person_in_charge ?? '-',
                         'anggota' => $item->anggota ?? '-',
-                        'duration_days' => $item->duration_days,
-                        'is_multi_day' => $item->isMultiDay(),
-                        'is_ongoing' => $item->isOngoing(),
+                        'archived_at' => $item->archived_at ? $item->archived_at->format('d/m/Y H:i') : '-',
                         'action' => '
                             <div class="flex space-x-1">
-                                <button class="btn-detail inline-flex items-center px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors" data-id="'.$item->id_kegiatan.'" title="Lihat Detail">
+                                <button class="btn-detail px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors" data-id="'.$item->id_kegiatan.'" title="Lihat Detail">
                                     <i data-lucide="eye" class="w-3 h-3"></i>
                                 </button>
-                                <button class="btn-edit inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors" data-id="'.$item->id_kegiatan.'" title="Edit">
-                                    <i data-lucide="edit" class="w-3 h-3"></i>
+                                <button class="btn-restore px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors" data-id="'.$item->id_kegiatan.'" title="Restore">
+                                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
                                 </button>
-                                <button class="btn-delete inline-flex items-center px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors" data-id="'.$item->id_kegiatan.'" title="Hapus">
+                                <button class="btn-delete-permanent px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors" data-id="'.$item->id_kegiatan.'" title="Hapus Permanen">
                                     <i data-lucide="trash-2" class="w-3 h-3"></i>
                                 </button>
                             </div>
@@ -91,43 +77,13 @@ class JadwalController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('DataTables Error: ' . $e->getMessage());
+            \Log::error('Archive DataTables Error: ' . $e->getMessage());
             return response()->json([
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ], 500);
         }
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nama_kegiatan' => 'required|string|max:255',
-            'person_in_charge' => 'nullable|string|max:255',
-            'anggota' => 'nullable|string',
-            'tanggal_mulai' => 'nullable|date',
-            'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
-            'jam_mulai' => 'nullable|date_format:H:i',
-            'jam_selesai' => 'nullable|date_format:H:i|after:jam_mulai',
-            'nama_tempat' => 'nullable|string|max:255',
-            'id_unit_kerja' => 'nullable|exists:t_ref_unit_kerja,id_unit_kerja'
-        ]);
-
-        // Prepare data
-        $data = $request->all();
-        
-        // If tanggal_selesai is not provided, set it same as tanggal_mulai
-        if (!$data['tanggal_selesai'] && $data['tanggal_mulai']) {
-            $data['tanggal_selesai'] = $data['tanggal_mulai'];
-        }
-
-        Kegiatan::create($data);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Jadwal kegiatan berhasil ditambahkan'
-        ]);
     }
 
     public function show($id)
@@ -161,55 +117,100 @@ class JadwalController extends Controller
             
             return response()->json($response);
         } catch (\Exception $e) {
-            \Log::error('Show Kegiatan Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Jadwal tidak ditemukan'], 404);
+        }
+    }
+
+    public function restore($id)
+    {
+        try {
+            $kegiatan = Kegiatan::findOrFail($id);
+            $kegiatan->update([
+                'is_archived' => false,
+                'archived_at' => null
+            ]);
+
             return response()->json([
-                'error' => 'Kegiatan tidak ditemukan',
-                'message' => $e->getMessage()
-            ], 404);
+                'success' => true,
+                'message' => 'Jadwal berhasil direstore'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal restore jadwal'
+            ], 500);
         }
     }
 
-    public function update(Request $request, $id)
+    public function destroyPermanent($id)
     {
-        $request->validate([
-            'nama_kegiatan' => 'required|string|max:255',
-            'person_in_charge' => 'nullable|string|max:255',
-            'anggota' => 'nullable|string',
-            'tanggal_mulai' => 'nullable|date',
-            'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
-            'jam_mulai' => 'nullable|date_format:H:i',
-            'jam_selesai' => 'nullable|date_format:H:i|after:jam_mulai',
-            'nama_tempat' => 'nullable|string|max:255',
-            'id_unit_kerja' => 'nullable|exists:t_ref_unit_kerja,id_unit_kerja'
-        ]);
+        try {
+            $kegiatan = Kegiatan::findOrFail($id);
+            $kegiatan->delete();
 
-        $kegiatan = Kegiatan::findOrFail($id);
-        
-        // Prepare data
-        $data = $request->all();
-        
-        // If tanggal_selesai is not provided, set it same as tanggal_mulai
-        if (!$data['tanggal_selesai'] && $data['tanggal_mulai']) {
-            $data['tanggal_selesai'] = $data['tanggal_mulai'];
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal berhasil dihapus permanen'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus jadwal'
+            ], 500);
         }
-        
-        $kegiatan->update($data);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Jadwal kegiatan berhasil diupdate'
-        ]);
     }
 
-    public function destroy($id)
+    public function bulkRestore(Request $request)
     {
-        $kegiatan = Kegiatan::findOrFail($id);
-        $kegiatan->delete();
+        try {
+            $ids = $request->input('ids', []);
+            
+            if (empty($ids)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No items selected'
+                ], 400);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Jadwal kegiatan berhasil dihapus'
-        ]);
+            $count = Kegiatan::whereIn('id_kegiatan', $ids)
+                ->where('is_archived', true)
+                ->update([
+                    'is_archived' => false,
+                    'archived_at' => null
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully restored {$count} schedules",
+                'count' => $count
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore schedules'
+            ], 500);
+        }
+    }
+
+    public function manualArchive($id)
+    {
+        try {
+            $kegiatan = Kegiatan::findOrFail($id);
+            $kegiatan->update([
+                'is_archived' => true,
+                'archived_at' => Carbon::now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal berhasil diarsipkan'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengarsipkan jadwal'
+            ], 500);
+        }
     }
 
     /**
@@ -235,19 +236,19 @@ class JadwalController extends Controller
             }
 
             if ($archivedCount > 0) {
-                \Log::info("Auto-archived {$archivedCount} outdated schedules in JadwalController");
+                \Log::info("Auto-archived {$archivedCount} outdated schedules in ArchiveController");
             }
 
             return $archivedCount;
 
         } catch (\Exception $e) {
-            \Log::error('Auto-archive Error in JadwalController: ' . $e->getMessage());
+            \Log::error('Auto-archive Error in ArchiveController: ' . $e->getMessage());
             return 0;
         }
     }
 
     /**
-     * Get schedule statistics
+     * Get statistics for archive
      */
     public function getStats()
     {
@@ -258,12 +259,10 @@ class JadwalController extends Controller
 
             $stats = [
                 'total_active' => Kegiatan::where('is_archived', false)->count(),
-                'ongoing' => Kegiatan::where('is_archived', false)
+                'total_archived' => Kegiatan::where('is_archived', true)->count(),
+                'today' => Kegiatan::where('is_archived', false)
                     ->where('tanggal_mulai', '<=', $today)
                     ->where('tanggal_selesai', '>=', $today)
-                    ->count(),
-                'upcoming' => Kegiatan::where('is_archived', false)
-                    ->where('tanggal_mulai', '>', $today)
                     ->count(),
                 'this_week' => Kegiatan::where('is_archived', false)
                     ->where(function($query) use ($thisWeek) {
@@ -276,9 +275,6 @@ class JadwalController extends Controller
                         $query->whereBetween('tanggal_mulai', [$thisMonth, $thisMonth->copy()->endOfMonth()])
                               ->orWhereBetween('tanggal_selesai', [$thisMonth, $thisMonth->copy()->endOfMonth()]);
                     })
-                    ->count(),
-                'multi_day' => Kegiatan::where('is_archived', false)
-                    ->whereRaw('tanggal_mulai != tanggal_selesai')
                     ->count(),
             ];
 

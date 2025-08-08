@@ -42,7 +42,7 @@
             </div>
             <div class="flex items-end">
                 <button id="btnFilter" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                    Filter
+                    <i data-lucide="filter" class="w-4 h-4 inline mr-2"></i>Filter
                 </button>
             </div>
         </div>
@@ -50,18 +50,33 @@
     
     <!-- Table Section -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-900">Daftar Jadwal Kegiatan</h3>
+            <div class="flex items-center space-x-2">
+                <!-- Auto Archive Button -->
+                <button id="btnAutoArchive" class="inline-flex items-center px-3 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors" title="Auto Archive Outdated Schedules">
+                    <i data-lucide="archive" class="w-4 h-4 mr-2"></i>
+                    <span>Auto Archive</span>
+                </button>
+                <!-- Refresh Button -->
+                <button id="btnRefresh" class="inline-flex items-center px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors" title="Refresh Data">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
         <div class="p-6">
             <div class="overflow-x-auto">
                 <table id="jadwalTable" class="w-full table-auto">
                     <thead>
                         <tr class="bg-gray-50 border-b border-gray-200">
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Mulai</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Selesai</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Kegiatan</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PIC</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Kerja</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempat</th>
+                          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PIC</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Anggota</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
@@ -158,14 +173,15 @@ $(document).ready(function() {
             }
         },
         columns: [
-            {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-            {data: 'nama_kegiatan', name: 'nama_kegiatan'},
-            {data: 'person_in_charge', name: 'person_in_charge'},
-            {data: 'unit_kerja', name: 'unit_kerja'},
-            {data: 'tanggal_formatted', name: 'tanggal'},
-            {data: 'jam_formatted', name: 'jam_formatted', orderable: false},
-            {data: 'nama_tempat', name: 'nama_tempat'},
-            {data: 'action', name: 'action', orderable: false, searchable: false}
+            {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, width: '5%'},
+            {data: 'tanggal_mulai_formatted', name: 'tanggal_mulai', width: '10%'},
+            {data: 'tanggal_selesai_formatted', name: 'tanggal_selesai', width: '10%'},
+            {data: 'nama_kegiatan', name: 'nama_kegiatan', width: '18%'},
+            {data: 'nama_tempat', name: 'nama_tempat', width: '10%'},
+            {data: 'jam_formatted', name: 'jam_formatted', orderable: false, width: '8%'},
+            {data: 'person_in_charge', name: 'person_in_charge', width: '10%'},
+            {data: 'anggota', name: 'anggota', width: '17%'},
+            {data: 'action', name: 'action', orderable: false, searchable: false, width: '12%'}
         ],
         language: {
             "decimal": "",
@@ -189,6 +205,7 @@ $(document).ready(function() {
         },
         pageLength: 10,
         responsive: true,
+        order: [[1, 'asc']], // Order by tanggal_mulai (earliest first)
         dom: '<"flex justify-between items-center mb-4"lf>rt<"flex justify-between items-center mt-4"ip>',
         drawCallback: function() {
             lucide.createIcons();
@@ -200,12 +217,86 @@ $(document).ready(function() {
         table.ajax.reload();
     });
     
+    // Refresh button
+    $('#btnRefresh').click(function() {
+        table.ajax.reload();
+        
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+        });
+
+        Toast.fire({
+            icon: 'success',
+            title: 'Data refreshed!'
+        });
+    });
+    
+    // Auto Archive button
+    $('#btnAutoArchive').click(function() {
+        Swal.fire({
+            title: 'Auto Archive Outdated Schedules?',
+            text: 'This will archive all schedules with dates before today',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#d97706',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, Archive!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Processing...',
+                    text: 'Archiving outdated schedules',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                $.ajax({
+                    url: "{{ route('dashboard.auto-archive') }}",
+                    method: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: response.message,
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                            table.ajax.reload();
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Failed to archive outdated schedules'
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
     // Add button
     $('#btnTambah').click(function() {
         $('#modalTambah').removeClass('hidden');
         $('#formTambah')[0].reset();
         $('#modalTitle').text('Tambah Jadwal Kegiatan');
         $('#jadwalId').val('');
+        
+        // Load all anggota when opening modal
+        $.get("{{ route('anggota.all') }}", function(data) {
+            window.allAnggotaData = data;
+            window.renderAnggotaList(data);
+        });
     });
     
     // Detail button click handler
@@ -224,8 +315,16 @@ $(document).ready(function() {
         
         // Fetch detail data
         $.get(`{{ url('jadwal') }}/${id}`, function(data) {
-            // Format tanggal
-            const tanggalFormatted = data.tanggal ? new Date(data.tanggal).toLocaleDateString('id-ID', {
+            // Format tanggal mulai
+            const tanggalMulaiFormatted = data.tanggal_mulai ? new Date(data.tanggal_mulai).toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }) : '-';
+            
+            // Format tanggal selesai
+            const tanggalSelesaiFormatted = data.tanggal_selesai ? new Date(data.tanggal_selesai).toLocaleDateString('id-ID', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -254,9 +353,15 @@ $(document).ready(function() {
                     <!-- Nama Kegiatan -->
                     <div>
                         <h4 class="text-lg font-semibold text-gray-900 mb-2">${data.nama_kegiatan || '-'}</h4>
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
-                            ${tanggalFormatted}
+                        <div class="flex items-center text-sm text-gray-600 space-x-4">
+                            <div class="flex items-center">
+                                <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+                                <span>Mulai: ${tanggalMulaiFormatted}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i data-lucide="calendar-check" class="w-4 h-4 mr-2"></i>
+                                <span>Selesai: ${tanggalSelesaiFormatted}</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -348,12 +453,19 @@ $(document).ready(function() {
             $('#nama_kegiatan').val(data.nama_kegiatan);
             $('#person_in_charge').val(data.person_in_charge);
             
-            // Fix date format for date input
-            if (data.tanggal) {
-                const formattedDate = new Date(data.tanggal).toISOString().split('T')[0];
-                $('#tanggal').val(formattedDate);
+            // Fix date format for date inputs
+            if (data.tanggal_mulai) {
+                const formattedDateMulai = new Date(data.tanggal_mulai).toISOString().split('T')[0];
+                $('#tanggal_mulai').val(formattedDateMulai);
             } else {
-                $('#tanggal').val('');
+                $('#tanggal_mulai').val('');
+            }
+            
+            if (data.tanggal_selesai) {
+                const formattedDateSelesai = new Date(data.tanggal_selesai).toISOString().split('T')[0];
+                $('#tanggal_selesai').val(formattedDateSelesai);
+            } else {
+                $('#tanggal_selesai').val('');
             }
             
             $('#jam_mulai').val(data.jam_mulai ? data.jam_mulai.substring(0, 5) : '');
@@ -412,6 +524,96 @@ $(document).ready(function() {
                 });
             }
         });
+    });
+
+    // Form submission handling
+    $('#formTambah').submit(function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const id = $('#jadwalId').val();
+        const isEdit = id !== '';
+        const url = isEdit ? `{{ url('jadwal') }}/${id}` : "{{ route('jadwal.store') }}";
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        // Add selected anggota to form data
+        const selectedAnggota = getSelectedAnggota();
+        formData.set('anggota', selectedAnggota.join(', '));
+        
+        // Convert FormData to regular object for PUT requests
+        const data = {};
+        for (let [key, value] of formData.entries()) {
+            data[key] = value;
+        }
+        
+        if (isEdit) {
+            data._method = 'PUT';
+        }
+        
+        $.ajax({
+            url: url,
+            method: 'POST',
+            data: data,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: response.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    $('#modalTambah').addClass('hidden');
+                    table.ajax.reload();
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Terjadi kesalahan saat menyimpan data';
+                
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errors = xhr.responseJSON.errors;
+                    errorMessage = Object.values(errors)[0][0]; // Get first error message
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: errorMessage
+                });
+            }
+        });
+    });
+    
+    // Close tambah modal
+    $(document).on('click', '#closeTambahModal, #btnCloseTambah', function() {
+        $('#modalTambah').addClass('hidden');
+    });
+    
+    // Close modal when clicking outside
+    $('#modalTambah').click(function(e) {
+        if (e.target === this) {
+            $(this).addClass('hidden');
+        }
+    });
+    
+    // Keyboard shortcuts
+    $(document).keydown(function(e) {
+        // Ctrl+N for new schedule
+        if (e.ctrlKey && e.key === 'n') {
+            e.preventDefault();
+            $('#btnTambah').click();
+        }
+        
+        // Ctrl+Shift+A for auto archive
+        if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+            e.preventDefault();
+            $('#btnAutoArchive').click();
+        }
+        
+        // ESC to close modals
+        if (e.key === 'Escape') {
+            $('#modalTambah, #modalDetail').addClass('hidden');
+        }
     });
 });
 </script>
