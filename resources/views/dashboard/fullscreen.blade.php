@@ -45,36 +45,17 @@
             margin: 0;
             padding: 0;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: white;
         }
         
         .fullscreen-container {
             min-height: 100vh;
-            background: #f8fafc;
-        }
-        
-        .table-container {
             background: white;
-            margin: 0;
-            border-radius: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .table-header {
             padding: 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
-            flex-shrink: 0;
-        }
-        
-        .table-content {
-            flex: 1;
-            padding: 1.5rem;
-            overflow: auto;
         }
         
         .table-wrapper {
-            height: 100%;
+            height: calc(100vh - 3rem);
             overflow: auto;
         }
         
@@ -85,9 +66,12 @@
             flex-direction: column;
         }
         
+        /* Hide length, filter, info, and pagination */
         .dataTables_length,
-        .dataTables_filter {
-            margin-bottom: 1rem;
+        .dataTables_filter,
+        .dataTables_info,
+        .dataTables_paginate {
+            display: none !important;
         }
         
         .dataTables_scroll {
@@ -97,6 +81,7 @@
         
         table.dataTable {
             font-size: 0.875rem;
+            width: 100% !important;
         }
         
         table.dataTable thead th {
@@ -105,6 +90,9 @@
             font-weight: 600;
             color: #374151;
             border-bottom: 2px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         
         table.dataTable tbody td {
@@ -117,34 +105,6 @@
         }
         
         /* Button styles */
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-        
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-        
         .btn-detail {
             background: #10b981;
             color: white;
@@ -174,7 +134,7 @@
             transform: translateX(100%);
             transition: transform 0.3s ease;
             max-width: 300px;
-            display: none; /* Hide the notification */
+            display: none;
         }
         
         .update-notification.show {
@@ -183,10 +143,6 @@
         
         .update-notification.error {
             background: #ef4444;
-        }
-        
-        .update-notification.warning {
-            background: #f59e0b;
         }
     </style>
 </head>
@@ -205,84 +161,22 @@
             </div>
         </div>
         
-        <div class="table-container">
-            <!-- Header -->
-            <div class="table-header">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 flex items-center">
-                            <i data-lucide="calendar" class="w-6 h-6 mr-3 text-blue-600"></i>
-                            Jadwal Kegiatan - Fullscreen View
-                        </h1>
-                        <p class="text-gray-600 mt-1">{{ date('l, d F Y') }} - Real-time Change Detection</p>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <!-- Auto Archive Button -->
-                        <button id="btnAutoArchive" class="btn-secondary flex items-center space-x-2" title="Auto Archive Outdated Schedules" style="background: #d97706;">
-                            <i data-lucide="archive" class="w-4 h-4"></i>
-                            <span>Auto Archive</span>
-                        </button>
-                        <!-- Refresh Button -->
-                        <button id="btnRefresh" class="btn-secondary flex items-center space-x-2" title="Refresh Data">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                            <span>Refresh</span>
-                        </button>
-                        <!-- Back to Dashboard -->
-                        <a href="{{ route('dashboard.index') }}" class="btn-primary flex items-center space-x-2">
-                            <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                            <span>Back to Dashboard</span>
-                        </a>
-                    </div>
-                </div>
-                
-                <!-- Filters -->
-                <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Unit Kerja</label>
-                        <select id="filterUnitKerja" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Semua Unit Kerja</option>
-                            @foreach($unitKerja as $unit)
-                                <option value="{{ $unit->id_unit_kerja }}">{{ $unit->nama_unit_kerja }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label>
-                        <input type="date" id="filterTanggalMulai" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Selesai</label>
-                        <input type="date" id="filterTanggalSelesai" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div class="flex items-end">
-                        <button id="btnFilter" class="w-full btn-primary flex items-center justify-center space-x-2">
-                            <i data-lucide="filter" class="w-4 h-4"></i>
-                            <span>Apply Filter</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Table Content -->
-            <div class="table-content">
-                <div class="table-wrapper">
-                    <table id="fullscreenTable" class="w-full table-auto display">
-                        <thead>
-                            <tr>
-                                <th class="text-left">No</th>
-                                <th class="text-left">Tanggal Mulai</th>
-                                <th class="text-left">Tanggal Selesai</th>
-                                <th class="text-left">Nama Kegiatan</th>
-                                <th class="text-left">Tempat</th>
-                                <th class="text-left">Waktu</th>
-                                <th class="text-left">PIC</th>
-                                <th class="text-left">Anggota</th>
-                                <th class="text-left">Detail</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
-            </div>
+        <div class="table-wrapper">
+            <table id="fullscreenTable" class="w-full table-auto display">
+                <thead>
+                    <tr>
+                        <th class="text-left">No</th>
+                        <th class="text-left">Tanggal Mulai</th>
+                        <th class="text-left">Tanggal Selesai</th>
+                        <th class="text-left">Nama Kegiatan</th>
+                        <th class="text-left">Tempat</th>
+                        <th class="text-left">Waktu</th>
+                        <th class="text-left">PIC</th>
+                        <th class="text-left">Anggota</th>
+                        <th class="text-left">Detail</th>
+                    </tr>
+                </thead>
+            </table>
         </div>
     </div>
 
@@ -327,14 +221,11 @@
             const table = $('#fullscreenTable').DataTable({
                 processing: true,
                 serverSide: true,
-                scrollY: 'calc(100vh - 280px)',
+                scrollY: 'calc(100vh - 4rem)',
                 scrollCollapse: true,
                 ajax: {
                     url: "{{ route('dashboard.data') }}",
                     data: function(d) {
-                        d.unit_kerja = $('#filterUnitKerja').val();
-                        d.tanggal_mulai = $('#filterTanggalMulai').val();
-                        d.tanggal_selesai = $('#filterTanggalSelesai').val();
                         d.timestamp = Date.now(); // Add timestamp to prevent caching
                     },
                     error: function(xhr, error, code) {
@@ -354,29 +245,18 @@
                     {data: 'action', name: 'action', orderable: false, searchable: false, width: '10%'}
                 ],
                 language: {
-                    "decimal": "",
                     "emptyTable": "Tidak ada jadwal kegiatan",
-                    "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ kegiatan",
-                    "infoEmpty": "Menampilkan 0 sampai 0 dari 0 kegiatan",
-                    "infoFiltered": "(disaring dari _MAX_ total kegiatan)",
-                    "infoPostFix": "",
-                    "thousands": ",",
-                    "lengthMenu": "Tampilkan _MENU_ kegiatan",
                     "loadingRecords": "Memuat...",
                     "processing": "Memproses...",
-                    "search": "Cari kegiatan:",
-                    "zeroRecords": "Tidak ditemukan kegiatan yang sesuai",
-                    "paginate": {
-                        "first": "Pertama",
-                        "last": "Terakhir",
-                        "next": "Selanjutnya",
-                        "previous": "Sebelumnya"
-                    }
+                    "zeroRecords": "Tidak ditemukan kegiatan yang sesuai"
                 },
-                pageLength: 25,
-                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Semua"]],
+                pageLength: 50,
+                paging: false, // Disable pagination to show all records
+                searching: false, // Disable search
+                lengthChange: false, // Disable length change
+                info: false, // Disable info
                 order: [[1, 'asc']],
-                dom: '<"flex justify-between items-center mb-4"<"flex items-center space-x-4"l<"ml-4"f>><"flex items-center space-x-2"B>>rt<"flex justify-between items-center mt-4"ip>',
+                dom: 'rt', // Only show the table (r = processing, t = table)
                 drawCallback: function() {
                     lucide.createIcons();
                 }
@@ -408,9 +288,6 @@
                     url: "{{ route('dashboard.data') }}",
                     method: 'GET',
                     data: {
-                        unit_kerja: $('#filterUnitKerja').val(),
-                        tanggal_mulai: $('#filterTanggalMulai').val(),
-                        tanggal_selesai: $('#filterTanggalSelesai').val(),
                         draw: 1,
                         start: 0,
                         length: -1, // Get all records for hash comparison
@@ -468,9 +345,8 @@
                 $('#updateMessage').text(message);
                 
                 // Set notification type
-                notification.removeClass('error warning');
+                notification.removeClass('error');
                 if (type === 'error') notification.addClass('error');
-                if (type === 'warning') notification.addClass('warning');
                 
                 notification.addClass('show');
                 
@@ -485,65 +361,6 @@
             // Event handlers
             $('#dismissNotification').click(function() {
                 $('#updateNotification').removeClass('show');
-            });
-            
-            $('#btnFilter').click(function() {
-                lastDataHash = null; // Reset hash to force update
-                table.ajax.reload();
-                showUpdateNotification('Filter applied!', 'success');
-            });
-            
-            $('#btnRefresh').click(function() {
-                lastDataHash = null; // Reset hash to force update
-                table.ajax.reload();
-                showUpdateNotification('Data refreshed manually!', 'success');
-            });
-            
-            $('#btnAutoArchive').click(function() {
-                Swal.fire({
-                    title: 'Auto Archive Outdated Schedules?',
-                    text: 'This will archive all schedules with dates before today',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d97706',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, Archive!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire({
-                            title: 'Processing...',
-                            text: 'Archiving outdated schedules',
-                            allowOutsideClick: false,
-                            didOpen: () => Swal.showLoading()
-                        });
-                        
-                        $.ajax({
-                            url: "{{ route('dashboard.auto-archive') }}",
-                            method: 'POST',
-                            success: function(response) {
-                                if (response.success) {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Success!',
-                                        text: response.message,
-                                        timer: 3000,
-                                        showConfirmButton: false
-                                    });
-                                    lastDataHash = null; // Force update
-                                    table.ajax.reload();
-                                }
-                            },
-                            error: function() {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error!',
-                                    text: 'Failed to archive outdated schedules'
-                                });
-                            }
-                        });
-                    }
-                });
             });
             
             // Detail modal handlers
@@ -562,40 +379,12 @@
                 }
             });
             
-            // Utility functions
-            function showToast(message, type = 'info') {
-                const Toast = Swal.mixin({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                    didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer);
-                        toast.addEventListener('mouseleave', Swal.resumeTimer);
-                    }
-                });
-
-                Toast.fire({
-                    icon: type,
-                    title: message
-                });
-            }
-
-            // Keyboard shortcuts
+            // Keyboard shortcut - ESC to go back
             $(document).keydown(function(e) {
-                if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
-                    e.preventDefault();
-                    $('#btnRefresh').click();
-                }
-                
-                if (e.key === 'Escape') {
+                if (e.key === 'Escape' && !$('#modalDetail').hasClass('hidden')) {
+                    $('#modalDetail').addClass('hidden');
+                } else if (e.key === 'Escape') {
                     window.location.href = "{{ route('dashboard.index') }}";
-                }
-                
-                if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-                    e.preventDefault();
-                    $('#btnAutoArchive').click();
                 }
             });
             
@@ -605,11 +394,6 @@
                     clearInterval(pollingInterval);
                 }
             });
-            
-            // Welcome message
-            setTimeout(function() {
-                showToast('Live monitoring active - changes will appear instantly!', 'info');
-            }, 2000);
         });
         
         // Detail modal function
@@ -701,7 +485,7 @@
                         </div>
                         
                         <div>
-                          <div class="flex items-center mb-3">
+                            <div class="flex items-center mb-3">
                                 <i data-lucide="users" class="w-4 h-4 text-gray-500 mr-2"></i>
                                 <span class="text-sm font-medium text-gray-700">Anggota Kegiatan</span>
                                 <span class="ml-2 text-xs text-gray-500">(${anggotaList.length} orang)</span>
@@ -710,22 +494,10 @@
                                 ${anggotaHtml}
                             </div>
                         </div>
-                        
-                        <div class="flex justify-end space-x-2 pt-4 border-t">
-                            <button class="btn-archive px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors" data-id="${data.id_kegiatan}">
-                                <i data-lucide="archive" class="w-4 h-4 inline mr-2"></i>
-                                Arsipkan Manual
-                            </button>
-                        </div>
                     </div>
                 `);
                 
                 lucide.createIcons();
-                
-                $('.btn-archive').click(function() {
-                    const id = $(this).data('id');
-                    archiveSchedule(id);
-                });
                 
             }).fail(function() {
                 $('#detailContent').html(`
@@ -735,48 +507,6 @@
                     </div>
                 `);
                 lucide.createIcons();
-            });
-        }
-
-        function archiveSchedule(id) {
-            Swal.fire({
-                title: 'Arsipkan Jadwal?',
-                text: 'Jadwal akan dipindahkan ke arsip',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#d97706',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Ya, Arsipkan!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: `{{ url('dashboard/manual-archive') }}/${id}`,
-                        method: 'POST',
-                        success: function(response) {
-                            if (response.success) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Berhasil!',
-                                    text: response.message,
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                });
-                                $('#modalDetail').addClass('hidden');
-                                // Force immediate update by resetting hash
-                                lastDataHash = null;
-                                $('#fullscreenTable').DataTable().ajax.reload();
-                            }
-                        },
-                        error: function() {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error!',
-                                text: 'Terjadi kesalahan saat mengarsipkan jadwal'
-                            });
-                        }
-                    });
-                }
             });
         }
     </script>
