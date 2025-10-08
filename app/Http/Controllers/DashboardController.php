@@ -61,17 +61,12 @@ class DashboardController extends Controller
                 'recordsTotal' => $kegiatan->count(),
                 'recordsFiltered' => $kegiatan->count(),
                 'data' => $kegiatan->map(function($item, $index) {
-                    // Create status indicators
-                    $statusBadge = '';
-                    if ($item->isOngoing()) {
-                        $statusBadge = '<br><span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">Berlangsung</span>';
-                    } elseif ($item->isMultiDay()) {
-                        $statusBadge = '<br><span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">' . $item->duration_days . ' Hari</span>';
-                    }
-                    
                     return [
                         'DT_RowIndex' => $index + 1,
-                        'tanggal_mulai_formatted' => ($item->tanggal_mulai ? $item->tanggal_mulai->format('d/m/Y') : '-') . $statusBadge,
+                        // Send both formatted and raw dates
+                        'tanggal_mulai' => $item->tanggal_mulai ? $item->tanggal_mulai->format('Y-m-d') : null,
+                        'tanggal_selesai' => $item->tanggal_selesai ? $item->tanggal_selesai->format('Y-m-d') : null,
+                        'tanggal_mulai_formatted' => $item->tanggal_mulai ? $item->tanggal_mulai->format('d/m/Y') : '-',
                         'tanggal_selesai_formatted' => $item->tanggal_selesai ? $item->tanggal_selesai->format('d/m/Y') : '-',
                         'nama_kegiatan' => $item->nama_kegiatan,
                         'nama_tempat' => $item->nama_tempat ?? '-',

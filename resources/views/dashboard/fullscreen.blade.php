@@ -104,20 +104,26 @@
             background: #f8fafc;
         }
         
-        /* Button styles */
-        .btn-detail {
-            background: #10b981;
-            color: white;
+        /* Status badge styles */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             padding: 0.375rem 0.75rem;
             border-radius: 0.375rem;
-            border: none;
-            cursor: pointer;
             font-size: 0.875rem;
-            transition: all 0.2s;
+            font-weight: 500;
+            width: fit-content;
         }
         
-        .btn-detail:hover {
-            background: #059669;
+        .status-ongoing {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-duration {
+            background: #dbeafe;
+            color: #1e40af;
         }
 
         /* Update notification */
@@ -139,6 +145,7 @@
         
         .update-notification.show {
             transform: translateX(0);
+            display: block;
         }
         
         .update-notification.error {
@@ -173,35 +180,10 @@
                         <th class="text-left">Waktu</th>
                         <th class="text-left">PIC</th>
                         <th class="text-left">Anggota</th>
-                        <th class="text-left">Detail</th>
+                        <th class="text-left">Status</th>
                     </tr>
                 </thead>
             </table>
-        </div>
-    </div>
-
-    <!-- Detail Modal -->
-    <div id="modalDetail" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between p-6 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Detail Jadwal Kegiatan</h3>
-                <button id="closeDetailModal" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <i data-lucide="x" class="w-6 h-6"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <div id="detailContent">
-                    <div class="text-center py-8">
-                        <i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600"></i>
-                        <p class="text-gray-600">Memuat detail kegiatan...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="flex items-center justify-end p-6 border-t border-gray-200 bg-gray-50">
-                <button id="btnCloseDetail" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    Tutup
-                </button>
-            </div>
         </div>
     </div>
 
@@ -217,6 +199,51 @@
             // Initialize icons
             lucide.createIcons();
             
+            // Helper function to get Indonesian day name
+            function getIndonesianDayName(dateString) {
+                if (!dateString) return '';
+                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const date = new Date(dateString);
+                return days[date.getDay()];
+            }
+            
+            // Helper function to format date with day name
+            function formatDateWithDay(dateString) {
+                if (!dateString) return '-';
+                const date = new Date(dateString);
+                const dayName = getIndonesianDayName(dateString);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${dayName}, ${day}-${month}-${year}`;
+            }
+            
+            // Helper function to calculate duration and check if ongoing
+            function getStatusInfo(startDate, endDate) {
+                if (!startDate || !endDate) return { duration: 0, isOngoing: false };
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                
+                const end = new Date(endDate);
+                end.setHours(0, 0, 0, 0);
+                
+                // Calculate duration in days
+                const durationMs = end - start;
+                const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24)) + 1;
+                
+                // Check if ongoing
+                const isOngoing = today >= start && today <= end;
+                
+                return {
+                    duration: durationDays,
+                    isOngoing: isOngoing
+                };
+            }
+            
             // Initialize DataTable
             const table = $('#fullscreenTable').DataTable({
                 processing: true,
@@ -226,7 +253,7 @@
                 ajax: {
                     url: "{{ route('dashboard.data') }}",
                     data: function(d) {
-                        d.timestamp = Date.now(); // Add timestamp to prevent caching
+                        d.timestamp = Date.now();
                     },
                     error: function(xhr, error, code) {
                         console.error('DataTable AJAX Error:', error, code, xhr.responseText);
@@ -235,14 +262,48 @@
                 },
                 columns: [
                     {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, width: '5%'},
-                    {data: 'tanggal_mulai_formatted', name: 'tanggal_mulai', width: '10%'},
-                    {data: 'tanggal_selesai_formatted', name: 'tanggal_selesai', width: '10%'},
+                    {
+                        data: 'tanggal_mulai',
+                        name: 'tanggal_mulai',
+                        width: '12%',
+                        render: function(data, type, row) {
+                            return formatDateWithDay(data);
+                        }
+                    },
+                    {
+                        data: 'tanggal_selesai',
+                        name: 'tanggal_selesai',
+                        width: '12%',
+                        render: function(data, type, row) {
+                            return formatDateWithDay(data);
+                        }
+                    },
                     {data: 'nama_kegiatan', name: 'nama_kegiatan', width: '20%'},
                     {data: 'nama_tempat', name: 'nama_tempat', width: '12%'},
                     {data: 'jam_formatted', name: 'jam_formatted', orderable: false, width: '10%'},
                     {data: 'person_in_charge', name: 'person_in_charge', width: '12%'},
-                    {data: 'anggota', name: 'anggota', width: '11%'},
-                    {data: 'action', name: 'action', orderable: false, searchable: false, width: '10%'}
+                    {data: 'anggota', name: 'anggota', width: '10%'},
+                    {
+                        data: null,
+                        name: 'status',
+                        orderable: false,
+                        searchable: false,
+                        width: '12%',
+                        render: function(data, type, row) {
+                            const statusInfo = getStatusInfo(row.tanggal_mulai, row.tanggal_selesai);
+                            
+                            let html = '<div class="flex flex-col gap-2 items-center">';
+                            
+                            if (statusInfo.isOngoing) {
+                                html += '<span class="status-badge status-ongoing">Berlangsung</span>';
+                            }
+                            
+                            html += `<span class="status-badge status-duration">${statusInfo.duration} hari</span>`;
+                            html += '</div>';
+                            
+                            return html;
+                        }
+                    }
                 ],
                 language: {
                     "emptyTable": "Tidak ada jadwal kegiatan",
@@ -251,12 +312,12 @@
                     "zeroRecords": "Tidak ditemukan kegiatan yang sesuai"
                 },
                 pageLength: 50,
-                paging: false, // Disable pagination to show all records
-                searching: false, // Disable search
-                lengthChange: false, // Disable length change
-                info: false, // Disable info
+                paging: false,
+                searching: false,
+                lengthChange: false,
+                info: false,
                 order: [[1, 'asc']],
-                dom: 'rt', // Only show the table (r = processing, t = table)
+                dom: 'rt',
                 drawCallback: function() {
                     lucide.createIcons();
                 }
@@ -270,7 +331,6 @@
             function startChangeDetection() {
                 if (pollingInterval) clearInterval(pollingInterval);
                 
-                // Poll every 2 seconds for changes
                 pollingInterval = setInterval(() => {
                     checkForChanges();
                 }, 2000);
@@ -279,31 +339,28 @@
             }
             
             function checkForChanges() {
-                if (isPolling) return; // Prevent overlapping requests
+                if (isPolling) return;
                 
                 isPolling = true;
                 
-                // Create a lightweight request to check for changes
                 $.ajax({
                     url: "{{ route('dashboard.data') }}",
                     method: 'GET',
                     data: {
                         draw: 1,
                         start: 0,
-                        length: -1, // Get all records for hash comparison
+                        length: -1,
                         timestamp: Date.now()
                     },
                     success: function(response) {
                         const currentDataHash = generateDataHash(response.data);
                         
                         if (lastDataHash === null) {
-                            // First time - just store the hash
                             lastDataHash = currentDataHash;
                         } else if (lastDataHash !== currentDataHash) {
-                            // Data has changed - reload the table
                             lastDataHash = currentDataHash;
                             
-                            table.ajax.reload(null, false); // false = don't reset paging
+                            table.ajax.reload(null, false);
                             showUpdateNotification('Changes detected - data updated!', 'success');
                             
                             console.log('Data changes detected and table updated at', new Date().toLocaleTimeString());
@@ -319,23 +376,21 @@
             }
             
             function generateDataHash(data) {
-                // Create a simple hash of the data to detect changes
                 const dataString = JSON.stringify(data.map(item => ({
                     id: item.DT_RowIndex,
                     nama: item.nama_kegiatan,
-                    tanggal_mulai: item.tanggal_mulai_formatted,
-                    tanggal_selesai: item.tanggal_selesai_formatted,
+                    tanggal_mulai: item.tanggal_mulai,
+                    tanggal_selesai: item.tanggal_selesai,
                     tempat: item.nama_tempat,
                     pic: item.person_in_charge,
                     anggota: item.anggota
                 })));
                 
-                // Simple hash function
                 let hash = 0;
                 for (let i = 0; i < dataString.length; i++) {
                     const char = dataString.charCodeAt(i);
                     hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash; // Convert to 32-bit integer
+                    hash = hash & hash;
                 }
                 return hash;
             }
@@ -344,7 +399,6 @@
                 const notification = $('#updateNotification');
                 $('#updateMessage').text(message);
                 
-                // Set notification type
                 notification.removeClass('error');
                 if (type === 'error') notification.addClass('error');
                 
@@ -363,27 +417,9 @@
                 $('#updateNotification').removeClass('show');
             });
             
-            // Detail modal handlers
-            $(document).on('click', '.btn-detail', function() {
-                const id = $(this).data('id');
-                showDetailModal(id);
-            });
-            
-            $(document).on('click', '#closeDetailModal, #btnCloseDetail', function() {
-                $('#modalDetail').addClass('hidden');
-            });
-            
-            $('#modalDetail').click(function(e) {
-                if (e.target === this) {
-                    $(this).addClass('hidden');
-                }
-            });
-            
             // Keyboard shortcut - ESC to go back
             $(document).keydown(function(e) {
-                if (e.key === 'Escape' && !$('#modalDetail').hasClass('hidden')) {
-                    $('#modalDetail').addClass('hidden');
-                } else if (e.key === 'Escape') {
+                if (e.key === 'Escape') {
                     window.location.href = "{{ route('dashboard.index') }}";
                 }
             });
@@ -395,120 +431,6 @@
                 }
             });
         });
-        
-        // Detail modal function
-        function showDetailModal(id) {
-            $('#modalDetail').removeClass('hidden');
-            $('#detailContent').html(`
-                <div class="text-center py-8">
-                    <i data-lucide="loader-2" class="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600"></i>
-                    <p class="text-gray-600">Memuat detail kegiatan...</p>
-                </div>
-            `);
-            lucide.createIcons();
-            
-            $.get(`{{ url('dashboard') }}/${id}`, function(data) {
-                const tanggalMulaiFormatted = data.tanggal_mulai ? new Date(data.tanggal_mulai).toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                }) : '-';
-                
-                const tanggalSelesaiFormatted = data.tanggal_selesai ? new Date(data.tanggal_selesai).toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                }) : '-';
-                
-                const jamMulai = data.jam_mulai ? data.jam_mulai.substring(0, 5) : '';
-                const jamSelesai = data.jam_selesai ? data.jam_selesai.substring(0, 5) : '';
-                const waktuFormatted = jamMulai && jamSelesai ? `${jamMulai} - ${jamSelesai}` : 
-                                      jamMulai ? `${jamMulai}` : 
-                                      jamSelesai ? `Sampai ${jamSelesai}` : '-';
-                
-                const unitKerjaInfo = data.unit_kerja ? data.unit_kerja.nama_unit_kerja : '-';
-                const anggotaList = data.anggota ? data.anggota.split(', ') : [];
-                const anggotaHtml = anggotaList.length > 0 ? 
-                    anggotaList.map(anggota => `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${anggota}</span>`).join(' ') :
-                    '<span class="text-gray-500">Tidak ada anggota terdaftar</span>';
-                
-                $('#detailContent').html(`
-                    <div class="space-y-6">
-                        <div>
-                            <h4 class="text-lg font-semibold text-gray-900 mb-2">${data.nama_kegiatan || '-'}</h4>
-                            <div class="flex items-center text-sm text-gray-600 space-x-4">
-                                <div class="flex items-center">
-                                    <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
-                                    <span>Mulai: ${tanggalMulaiFormatted}</span>
-                                </div>
-                                <div class="flex items-center">
-                                    <i data-lucide="calendar-check" class="w-4 h-4 mr-2"></i>
-                                    <span>Selesai: ${tanggalSelesaiFormatted}</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex items-center mb-2">
-                                    <i data-lucide="user" class="w-4 h-4 text-gray-500 mr-2"></i>
-                                    <span class="text-sm font-medium text-gray-700">Person in Charge</span>
-                                </div>
-                                <p class="text-gray-900">${data.person_in_charge || '-'}</p>
-                            </div>
-                            
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex items-center mb-2">
-                                    <i data-lucide="building" class="w-4 h-4 text-gray-500 mr-2"></i>
-                                    <span class="text-sm font-medium text-gray-700">Unit Kerja</span>
-                                </div>
-                                <p class="text-gray-900">${unitKerjaInfo}</p>
-                            </div>
-                            
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex items-center mb-2">
-                                    <i data-lucide="clock" class="w-4 h-4 text-gray-500 mr-2"></i>
-                                    <span class="text-sm font-medium text-gray-700">Waktu</span>
-                                </div>
-                                <p class="text-gray-900">${waktuFormatted}</p>
-                            </div>
-                            
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex items-center mb-2">
-                                    <i data-lucide="map-pin" class="w-4 h-4 text-gray-500 mr-2"></i>
-                                    <span class="text-sm font-medium text-gray-700">Tempat/Lokasi</span>
-                                </div>
-                                <p class="text-gray-900">${data.nama_tempat || '-'}</p>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <div class="flex items-center mb-3">
-                                <i data-lucide="users" class="w-4 h-4 text-gray-500 mr-2"></i>
-                                <span class="text-sm font-medium text-gray-700">Anggota Kegiatan</span>
-                                <span class="ml-2 text-xs text-gray-500">(${anggotaList.length} orang)</span>
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                ${anggotaHtml}
-                            </div>
-                        </div>
-                    </div>
-                `);
-                
-                lucide.createIcons();
-                
-            }).fail(function() {
-                $('#detailContent').html(`
-                    <div class="text-center py-8">
-                        <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-4 text-red-500"></i>
-                        <p class="text-red-600">Gagal memuat detail kegiatan</p>
-                    </div>
-                `);
-                lucide.createIcons();
-            });
-        }
     </script>
 </body>
 </html>
