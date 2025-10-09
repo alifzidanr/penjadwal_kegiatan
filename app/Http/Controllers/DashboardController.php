@@ -152,15 +152,17 @@ class DashboardController extends Controller
 
     /**
      * Auto-archive schedules that are outdated (past their end date)
+     * FIXED: Now archives schedules where tanggal_selesai < today (not yesterday)
      */
     private function autoArchiveOutdatedSchedules()
     {
         try {
-            $yesterday = Carbon::yesterday()->format('Y-m-d');
+            $today = Carbon::today()->format('Y-m-d');
             
             // Archive schedules where tanggal_selesai is before today
+            // This means: if event ended yesterday or earlier, archive it
             $outdatedSchedules = Kegiatan::where('is_archived', false)
-                ->where('tanggal_selesai', '<', $yesterday)
+                ->where('tanggal_selesai', '<', $today)
                 ->get();
 
             $archivedCount = 0;
@@ -173,7 +175,7 @@ class DashboardController extends Controller
             }
 
             if ($archivedCount > 0) {
-                \Log::info("Auto-archived {$archivedCount} outdated schedules in DashboardController");
+                \Log::info("Auto-archived {$archivedCount} outdated schedules in DashboardController at " . Carbon::now()->toDateTimeString());
             }
 
             return $archivedCount;
