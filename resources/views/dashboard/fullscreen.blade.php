@@ -93,6 +93,11 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            text-align: left;
+        }
+        
+        table.dataTable thead th:last-child {
+            text-align: center;
         }
         
         table.dataTable tbody td {
@@ -124,6 +129,16 @@
         .status-duration {
             background: #dbeafe;
             color: #1e40af;
+        }
+        
+        .status-countdown {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-countdown-urgent {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         /* Update notification */
@@ -173,14 +188,14 @@
                 <thead>
                     <tr>
                         <th class="text-left">No</th>
-                        <th class="text-left">Tanggal Mulai</th>
-                        <th class="text-left">Tanggal Selesai</th>
-                        <th class="text-left">Nama Kegiatan</th>
-                        <th class="text-left">Tempat</th>
-                        <th class="text-left">Waktu</th>
-                        <th class="text-left">PIC</th>
-                        <th class="text-left">Anggota</th>
-                        <th class="text-left">Status</th>
+                        <th class="text-center">Tanggal Mulai</th>
+                        <th class="text-center">Tanggal Selesai</th>
+                        <th class="text-center">Nama Kegiatan</th>
+                        <th class="text-center">Tempat</th>
+                        <th class="text-center">Waktu</th>
+                        <th class="text-center">PIC</th>
+                        <th class="text-center">Anggota</th>
+                        <th class="text-center">Status</th>
                     </tr>
                 </thead>
             </table>
@@ -218,9 +233,9 @@
                 return `${dayName}, ${day}-${month}-${year}`;
             }
             
-            // Helper function to calculate duration and check if ongoing
+            // Helper function to calculate duration, check if ongoing, and calculate countdown
             function getStatusInfo(startDate, endDate) {
-                if (!startDate || !endDate) return { duration: 0, isOngoing: false };
+                if (!startDate || !endDate) return { duration: 0, isOngoing: false, daysUntil: null };
                 
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -238,9 +253,17 @@
                 // Check if ongoing
                 const isOngoing = today >= start && today <= end;
                 
+                // Calculate days until event starts (countdown)
+                let daysUntil = null;
+                if (today < start) {
+                    const untilMs = start - today;
+                    daysUntil = Math.ceil(untilMs / (1000 * 60 * 60 * 24));
+                }
+                
                 return {
                     duration: durationDays,
-                    isOngoing: isOngoing
+                    isOngoing: isOngoing,
+                    daysUntil: daysUntil
                 };
             }
             
@@ -294,10 +317,17 @@
                             
                             let html = '<div class="flex flex-col gap-2 items-center">';
                             
+                            // Show "Berlangsung" badge if event is ongoing
                             if (statusInfo.isOngoing) {
                                 html += '<span class="status-badge status-ongoing">Berlangsung</span>';
+                            } 
+                            // Show countdown if event hasn't started yet
+                            else if (statusInfo.daysUntil !== null) {
+                                const badgeClass = statusInfo.daysUntil <= 3 ? 'status-countdown-urgent' : 'status-countdown';
+                                html += `<span class="status-badge ${badgeClass}">H-${statusInfo.daysUntil}</span>`;
                             }
                             
+                            // Always show duration badge
                             html += `<span class="status-badge status-duration">${statusInfo.duration} hari</span>`;
                             html += '</div>';
                             
